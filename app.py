@@ -39,6 +39,7 @@ PRODUCTS = sorted({r["product"] for r in rows}, key=len, reverse=True)
 
 def answer(q):
     ql = q.lower()
+    ql = ql.replace("at least", "")  # "at least one" is not a ranking word
 
     # 1. which orders count: refund questions use refunded, otherwise paid
     if "refund" in ql: status = "refunded"
@@ -79,6 +80,10 @@ def answer(q):
     ranking = re.search(r"\b(which|top|best|highest|most|largest|biggest|lowest|least|fewest|smallest|worst)\b", ql)
     by_count = re.search(r"\b(units|quantity|qty|orders|how many)\b", ql)
 
+    # "how many different customers ..." -> count distinct customers (checked first)
+    if re.search(r"(how many|number of|count of|unique|distinct|different) .*customers", ql):
+        return len({r["customer"] for r in sel})
+
     if g and ranking:  # "which product had the most revenue ..."
         key = g.group(1)
         totals = {}
@@ -89,8 +94,6 @@ def answer(q):
             return None
         pick = min if re.search(r"lowest|least|fewest|smallest|worst", ql) else max
         return pick(totals, key=totals.get)
-    if re.search(r"(how many|number of|count of|unique|distinct) .*customers", ql):
-        return len({r["customer"] for r in sel})
     if re.search(r"average|avg|mean", ql):
         return round(sum(r["usd"] for r in sel) / len(sel), 2) if sel else 0
     if re.search(r"units|quantity|qty|items sold", ql):
