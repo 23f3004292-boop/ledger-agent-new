@@ -120,3 +120,41 @@ def ans():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
+# ================= MCP server (Streamable HTTP, JSON responses) =================
+import hashlib
+
+EMAIL = "23f3004292@ds.study.iitm.ac.in"  # normalized: trimmed + lowercase
+
+def mcp_handle(m):
+    method, mid = m.get("method"), m.get("id")
+    if mid is None:  # notifications (e.g. notifications/initialized) get no reply
+        return None
+    if method == "initialize":
+        ver = (m.get("params") or {}).get("protocolVersion", "2025-03-26")
+        result = {"protocolVersion": ver, "capabilities": {"tools": {}},
+                  "serverInfo": {"name": "challenge-server", "version": "1.0"}}
+    elif method == "tools/list":
+        result = {"tools": [{
+            "name": "solve_challenge",
+            "description": "Returns the first 16 hex chars of SHA-256(challenge:email).",
+            "inputSchema": {"type": "object", "properties": {}}}]}
+    elif method == "tools/call":
+        # the challenge comes from the HTTP header, NOT the JSON body
+        ch = request.headers.get("X-Exam-Challenge", "")
+        text = hashlib.sha256(f"{ch}:{EMAIL}".encode()).hexdigest()[:16]
+        result = {"content": [{"type": "text", "text": text}]}
+    elif method == "ping":
+        result = {}
+    else:
+        return {"jsonrpc": "2.0", "id": mid,
+                "error": {"code": -32601, "message": "Method not found"}}
+    return {"jsonrpc": "2.0", "id": mid, "result": result}
+
+@app.route("/mcp", methods=["POST"], strict_slashes=False)
+def mcp():
+    body = request.get_json(force=True, silent=True)
+    if isinstance(body, list):  # JSON-RPC batch
+        out = [r for r in (mcp_handle(m) for m in body) if r]
+    else:
+        out = mcp_handle(body or {})
+    return (jsonify(out), 200) if out else ("", 202)
