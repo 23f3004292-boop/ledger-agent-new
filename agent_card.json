@@ -1,0 +1,28 @@
+{
+    "name": "Invoice Action Agent",
+    "description": "An agent that evaluates invoice packages and proposes evidence-based business actions.",
+    "version": "1.0.0",
+    "capabilities": {},
+    "defaultInputModes": [
+        "application/vnd.ga5.invoice-claim-batch+json"
+    ],
+    "defaultOutputModes": [
+        "application/vnd.ga5.invoice-action-proposals+json",
+        "application/vnd.ga5.invoice-action-receipts+json"
+    ],
+    "supportedInterfaces": [{
+        "url": "https://YOUR-DEPLOYED-BASE-URL/a2a/",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "1.0"
+    }],
+    "skills": [{
+        "id": "invoice_action_agent",
+        "name": "Invoice Action Agent",
+        "description": "Evaluates invoices and proposes safe actions with supporting evidence.",
+        "tags": [
+            "invoice",
+            "finance",
+            "reconciliation"
+        ]
+    }]
+}
